@@ -1,27 +1,45 @@
 class HeroesController < ApplicationController
-  rescue_from ActiveRecord::RecordNotFound, with: :render_not_found_response
-  rescue_from ActiveRecord::RecordInvalid,
-              with: :render_unprocessable_entity_response
-  def index
-    heros = Hero.all
-    render json: heros, status: :ok
+    rescue_from ActiveRecord::RecordNotFound, with: :render_not_found_response
+    rescue_from ActiveRecord::RecordInvalid, with: :create_error
+    
+    def index
+        heroes = Hero.all
+        render json: heroes, include: ['id','name','super_name']
+    end
+
+    
+
+    def show
+      hero = find_hero
+      render json: hero
+    end
+
+    def destroy
+      hero = find_hero
+      hero.destroy
+      head :no_content
+    end
+
+  def create
+    hero = Hero.create!(hero_param)
+    render json: hero,  status: 201
   end
 
-  def show
-    hero = Hero.find(params[:id])
-    render json: hero, status: :ok
+  private 
+
+  def find_hero
+    Hero.find(params[:id])
   end
-
-  private
-
+  
   def render_not_found_response
-    render json: { error: "Hero not found" }, status: :not_found
+    render json: { error: "Hero not found" }, status: 404
   end
 
-  def render_unprocessable_entity_response(invalid)
-    render json: {
-             error: invalid.record.errors.full_messages
-           },
-           status: :unprocessable_entity
+  def create_error
+    render json: { error:  ["validation errors"]}, status: 422
+  end
+
+  def hero_param
+    params.permit(:name, :super_name)
   end
 end
